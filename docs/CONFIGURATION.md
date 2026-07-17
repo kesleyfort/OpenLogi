@@ -29,8 +29,12 @@ MX Master 4):
   explicitly (otherwise inferred).
 
 The app-wide `[app_settings]` block holds `launch_at_login`,
-`check_for_updates` (both off by default), `show_in_menu_bar` (macOS-only)
-and `language` (absent = follow the system locale).
+`check_for_updates` (both off by default), `show_in_menu_bar` (macOS-only),
+`capture_mouse_events` (on by default; set to `false` to keep the agent from
+installing the OS-level mouse hook at all — button remapping stops working,
+but no input device is grabbed or intercepted; DPI, SmartShift, and the other
+HID++-side features keep working; takes effect on agent restart) and
+`language` (absent = follow the system locale).
 
 ```toml
 schema_version = 2

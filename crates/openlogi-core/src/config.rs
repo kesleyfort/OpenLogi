@@ -122,6 +122,15 @@ pub struct AppSettings {
     /// while a window is open). Ignored on Linux.
     #[serde(default = "default_true")]
     pub show_in_menu_bar: bool,
+    /// Whether the agent installs the OS-level mouse hook (CGEventTap /
+    /// exclusive `evdev` grab / `WH_MOUSE_LL`) that intercepts mouse events
+    /// for button remapping. `true` (default) keeps remapping active;
+    /// `false` is an escape hatch that leaves every input device untouched
+    /// (on Linux: no exclusive grabs at all). HID++-side features — DPI,
+    /// SmartShift, the gesture button, the thumb wheel — are unaffected.
+    /// Takes effect on agent restart.
+    #[serde(default = "default_true")]
+    pub capture_mouse_events: bool,
     /// Whether the GUI automatically downloads device images from
     /// `assets.openlogi.org` when a device appears. `true` (default) keeps
     /// the current behavior; `false` makes no asset network requests at all
@@ -188,6 +197,7 @@ impl Default for AppSettings {
             auto_install_updates: false,
             update_prompt_seen: false,
             show_in_menu_bar: true,
+            capture_mouse_events: true,
             auto_download_assets: true,
             language: None,
             thumbwheel_sensitivity: DEFAULT_THUMBWHEEL_SENSITIVITY,
@@ -199,8 +209,10 @@ impl Default for AppSettings {
     }
 }
 
-/// serde default for [`AppSettings::show_in_menu_bar`]: `true`, so the menu-bar
-/// icon is on out of the box and configs predating the field keep that behavior.
+/// serde default for the on-by-default [`AppSettings`] toggles
+/// ([`AppSettings::show_in_menu_bar`], [`AppSettings::capture_mouse_events`],
+/// [`AppSettings::auto_download_assets`]), so configs predating a field keep
+/// the out-of-the-box behavior.
 fn default_true() -> bool {
     true
 }
@@ -1385,6 +1397,23 @@ mod tests {
         cfg.app_settings.launch_at_login = true;
         let parsed = write_and_read(&cfg);
         assert!(parsed.app_settings.launch_at_login);
+    }
+
+    #[test]
+    fn capture_mouse_events_defaults_true_when_absent() {
+        // Configs written before the field existed must keep the hook on.
+        let cfg: Config =
+            toml::from_str("schema_version = 3\n\n[app_settings]\nlaunch_at_login = true\n")
+                .expect("parse");
+        assert!(cfg.app_settings.capture_mouse_events);
+    }
+
+    #[test]
+    fn capture_mouse_events_roundtrips_false() {
+        let mut cfg = Config::default();
+        cfg.app_settings.capture_mouse_events = false;
+        let parsed = write_and_read(&cfg);
+        assert!(!parsed.app_settings.capture_mouse_events);
     }
 
     #[test]
